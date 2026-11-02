@@ -20,6 +20,16 @@ population_size = st.sidebar.slider("Population Size", min_value=10, max_value=1
 max_generations = st.sidebar.slider("Number of Generations", min_value=50, max_value=2000, value=500, step=50)
 working_resolution = st.sidebar.slider("Working Resolution (Pixel Width)", min_value=50, max_value=300, value=120, step=10)
 
+st.sidebar.subheader("Genetic Operators")
+mutation_rate = st.sidebar.slider("Mutation Rate (per Polygon)", min_value=0.01, max_value=0.5, value=0.05, step=0.01,
+                                  help="Wahrscheinlichkeit, mit der jedes Dreieck eines Kindes mutiert wird.")
+mutation_strength = st.sidebar.slider("Mutation Strength", min_value=0.5, max_value=3.0, value=1.0, step=0.25,
+                                      help="Skaliert die Schrittweite (Punktverschiebung, Farbe, Transparenz).")
+crossover_rate = st.sidebar.slider("Crossover Rate", min_value=0.0, max_value=1.0, value=0.7, step=0.05,
+                                   help="Wahrscheinlichkeit, dass ein Kind aus zwei Eltern kombiniert wird.")
+tournament_size = st.sidebar.slider("Tournament Size", min_value=2, max_value=10, value=3, step=1,
+                                    help="Je größer, desto stärker der Selektionsdruck.")
+
 st.sidebar.markdown("---")
 st.sidebar.info(
     "**Tip:** A smaller working resolution (e.g., 120px) significantly accelerates the evolutionary process, "
@@ -88,15 +98,21 @@ if uploaded_file is not None:
         
         # Hauptschleife der Generationen
         for gen in range(1, max_generations + 1):
-            pop.evolve()
-            pop.evaluate_generation(original_img_bgr)
-            
-            # Alle 5 Generationen neue Dreiecke hinzufügen (bis das Maximum erreicht ist)
+            pop.evolve(
+                mutation_rate=mutation_rate,
+                mutation_strength=mutation_strength,
+                crossover_rate=crossover_rate,
+                tournament_size=tournament_size,
+            )
+
+            # Alle 5 Generationen neue Dreiecke hinzufügen (bis das Maximum erreicht ist).
+            # Alle Individuen wachsen gleichzeitig, damit Crossover gleich lange Genome kombiniert.
             if gen % 5 == 0 and current_polygons < num_polygons:
-                current_polygons += 2
-                best_ind = pop.get_best_individual()
-                best_ind.add_random_polygon()
-                best_ind.add_random_polygon()
+                add = min(2, num_polygons - current_polygons)
+                current_polygons += add
+                pop.add_random_polygons(add)
+
+            pop.evaluate_generation(original_img_bgr)
             
             # UI-Update alle 10 Generationen für flüssige Live-Ansicht
             if gen % 10 == 0 or gen == max_generations:
