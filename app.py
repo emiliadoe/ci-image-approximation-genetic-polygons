@@ -3,8 +3,7 @@ import cv2
 import numpy as np
 import time
 
-from src.population import Population
-from src.hillclimber import Hillclimber
+from src.evolution import run_evolution, GENETIC_ALGORITHM, HILLCLIMBER
 
 # Seitenkonfiguration für ein breiteres Layout
 st.set_page_config(
@@ -22,16 +21,10 @@ max_generations = st.sidebar.slider("Number of Generations", min_value=50, max_v
 working_resolution = st.sidebar.slider("Working Resolution (Pixel Width)", min_value=50, max_value=300, value=120, step=10)
 algorithm = st.sidebar.radio(
     "Algorithm",
-    ["Genetic Algorithm", "Hillclimber (1+1)"],
+    [GENETIC_ALGORITHM, HILLCLIMBER],
     help="Der Hillclimber (wie bei Roger Alsing) hat nur ein Individuum ohne Crossover. "
          "Er bekommt pro Generation genauso viele Fitness-Auswertungen wie der GA, damit der Vergleich fair ist."
 )
-
-# Feste GA-Parameter (nicht in der UI einstellbar)
-mutation_rate = 0.05      # Wahrscheinlichkeit pro Dreieck, mutiert zu werden
-mutation_strength = 1.0   # Skaliert die Schrittweite der Mutation
-crossover_rate = 0.7      # Wahrscheinlichkeit, dass ein Kind aus zwei Eltern entsteht
-tournament_size = 3       # Anzahl Kandidaten pro Eltern-Turnier
 
 st.sidebar.markdown("---")
 st.sidebar.info(
@@ -85,61 +78,22 @@ if uploaded_file is not None:
     if st.button("Start Evolution", type="primary"):
         status_metric.metric("Status", "Running...")
         
-        # Inkrementeller Start: Wir beginnen mit wenigen Polygonen (z.B. 15) 
-        # und füttern sie schrittweise bis zum ausgewählten Maximum (`num_polygons`) auf.
-        current_polygons = min(15, num_polygons)
-        
-        use_ga = algorithm == "Genetic Algorithm"
-        if use_ga:
-            pop = Population(
-                size=population_size,
-                num_polygons=current_polygons,
-                width=working_resolution,
-                height=target_h
-            )
-        else:
-            pop = Hillclimber(
-                num_polygons=current_polygons,
-                width=working_resolution,
-                height=target_h
-            )
+        def show_progress(gen, best_ind, renderer):
+            """UI-Update für die Live-Ansicht (wird von run_evolution aufgerufen)."""
+            rendered_rgb = cv2.cvtColor(renderer.render(best_ind), cv2.COLOR_BGR2RGB)
+            image_placeholder.image(rendered_rgb, width=250)
+            gen_metric.metric("Current Generation", str(gen))
+            fitness_metric.metric("Best Fitness", f"{best_ind.fitness:.6f}")
 
-        # Initiale Bewertung
-        pop.evaluate_generation(original_img_bgr)
+        run_evolution(
+            original_img_bgr,
+            algorithm,
+            num_polygons,
+            population_size,
+            max_generations,
+            on_progress=show_progress,
+        )
 
-        # Hauptschleife der Generationen
-        for gen in range(1, max_generations + 1):
-            if use_ga:
-                pop.evolve(
-                    mutation_rate=mutation_rate,
-                    mutation_strength=mutation_strength,
-                    crossover_rate=crossover_rate,
-                    tournament_size=tournament_size,
-                )
-            else:
-                # Gleiches Auswertungsbudget wie eine GA-Generation
-                pop.evolve(original_img_bgr, population_size)
-
-            # Alle 5 Generationen neue Dreiecke hinzufügen (bis das Maximum erreicht ist).
-            # Alle Individuen wachsen gleichzeitig, damit Crossover gleich lange Genome kombiniert.
-            if gen % 5 == 0 and current_polygons < num_polygons:
-                add = min(2, num_polygons - current_polygons)
-                current_polygons += add
-                pop.add_random_polygons(add)
-
-            pop.evaluate_generation(original_img_bgr)
-            
-            # UI-Update alle 10 Generationen für flüssige Live-Ansicht
-            if gen % 10 == 0 or gen == max_generations:
-                best_ind = pop.get_best_individual()
-                
-                rendered_img = best_ind.render()
-                rendered_rgb = cv2.cvtColor(rendered_img, cv2.COLOR_BGR2RGB)
-                
-                image_placeholder.image(rendered_rgb, width=250)
-                gen_metric.metric("Current Generation", str(gen))
-                fitness_metric.metric("Best Fitness", f"{best_ind.fitness:.6f}")
-                
         status_metric.metric("Status", "Done!")
         st.success("The evolution has been completed successfully!")
 

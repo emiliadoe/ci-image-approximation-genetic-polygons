@@ -1,51 +1,40 @@
-# Hier kommt OpenCV ins Spiel. Wir schreiben eine Funktion, die aus der reinen Zahlen-Liste (DNA) ein echtes Bild zeichnet und den Fehler (MSE) zum Original misst.
-# Das ist die schwerste Rechenaufgabe des Programms – deshalb müssen wir das extrem effizient mit NumPy machen.
+# Hier kommt OpenCV ins Spiel. Der Renderer zeichnet aus der reinen Zahlen-Liste (DNA) ein echtes Bild
+# und misst den Fehler (MSE) zum Zielbild. Das ist die schwerste Rechenaufgabe des Programms.
 
 import numpy as np
 import cv2
 
 class Renderer:
-    def __init__(self, width, height):
-        self.width = width
-        self.height = height    
-        
+    def __init__(self, target_image):
+        """`target_image` ist das Zielbild als BGR-Array (wie von cv2 geladen)."""
+        self.target_image = target_image.astype(np.float32)
+        self.height, self.width = target_image.shape[:2]
+
     def render(self, individual):
-        # empty canvas
+        """Zeichnet alle Polygone der Reihe nach mit Alpha-Blending auf eine weiße Leinwand (BGR)."""
         canvas = np.ones((self.height, self.width, 3), dtype=np.uint8) * 255
-        
+
         for poly in individual.polygons:
-            # get the points and color
             pts = np.array([[poly[0], poly[1]], [poly[2], poly[3]], [poly[4], poly[5]]], np.int32)
             pts = pts.reshape((-1, 1, 2))
-            # OpenCV format = BG. Da poly[6]=R, poly[7]=G, poly[8]=B ist muss man tauschen
+            # OpenCV-Format = BGR. Die Gene sind RGB (poly[6]=R, poly[7]=G, poly[8]=B), daher tauschen
             color = (int(poly[8]), int(poly[7]), int(poly[6]))
-            alpha = poly[9] / 255.0  
-            
-            # temporary canvas for alpha blending
+            alpha = poly[9] / 255.0
+
+            # temporäre Leinwand für das Alpha-Blending
             temp_canvas = canvas.copy()
             cv2.fillPoly(temp_canvas, [pts], color)
-            
-            # Alpha-Blending: Kombiniere temp_canvas mit der Hauptleinwand
             canvas = cv2.addWeighted(temp_canvas, alpha, canvas, 1 - alpha, 0)
-        
+
         return canvas
-    
-    def calculate_fitness(self, individual, target_image):
-        """Berechnet die Fitness basierend auf dem Mean Squared Error (MSE)
-        im Vergleich zum Original-Zielbild.
+
+    def calculate_fitness(self, individual):
+        """Setzt und liefert die Fitness (= 1 / (1 + MSE)) gegenüber dem Zielbild.
+
+        Je kleiner der MSE, desto ähnlicher ist das Bild dem Original und desto höher die Fitness.
+        Das +1 im Nenner verhindert eine Division durch 0.
         """
-        # 1. Bild des Individuums zeichnen
         rendered_image = self.render(individual)
-        
-        # 2. Mean Squared Error (MSE) über alle Pixel berechnen
-        # Je kleiner der MSE, desto ähnlicher ist das Bild dem Original!
-        mse = np.mean((target_image.astype(np.float32) - rendered_image.astype(np.float32)) ** 2)
-        
-        # 3. Fitness-Wert definieren: 
-        # Da genetische Algorithmen meistens einen *höheren* Fitnesswert maximieren wollen,
-        # kehren wir den MSE um (je kleiner der Fehler, desto höher die Fitness).
-        # Wir addern +1 im Nenner, um eine Division durch 0 zu verhindern.
-        fitness = 1.0 / (1.0 + mse)
-        
-        individual.fitness = fitness
-        return fitness
+        mse = np.mean((self.target_image - rendered_image.astype(np.float32)) ** 2)
+        individual.fitness = 1.0 / (1.0 + mse)
+        return individual.fitness

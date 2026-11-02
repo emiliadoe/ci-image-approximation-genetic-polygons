@@ -14,10 +14,10 @@ class Population:
             for _ in range(size)
         ]
 
-    def evaluate_generation(self, target_image):
-        """Bewertet alle Individuen der Population gegen das Zielbild."""
+    def evaluate_generation(self, renderer):
+        """Bewertet alle Individuen der Population gegen das Zielbild des Renderers."""
         for ind in self.individuals:
-            ind.evaluate(target_image)
+            renderer.calculate_fitness(ind)
             
         # Sortiere absteigend nach Fitness (höchste Fitness zuerst)
         self.individuals.sort(key=lambda x: x.fitness, reverse=True)

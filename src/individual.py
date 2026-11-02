@@ -1,10 +1,9 @@
 # Chromosome/ DNA Defintion for the Genetic Algorithm
 # Individuum aus einer Liste von Polygonen (Dreiecken)
 # Dreieck: 3 Eckpunkte (x, y), eine Farbe und Transparenz (RGBA)
+# Reine Datenstruktur mit Variationsoperatoren. Rendern und Fitness übernimmt der Renderer.
 
 import random
-import numpy as np
-import cv2
 
 class Individual:
     def __init__(self, num_polygons, width, height):
@@ -50,37 +49,6 @@ class Individual:
         new_ind.polygons = [list(poly) for poly in self.polygons]
         new_ind.fitness = self.fitness
         return new_ind
-
-# renders all polygons on a white canvas 
-    def render(self):
-        canvas = np.ones((self.height, self.width, 3), dtype=np.uint8) * 255
-        overlay = canvas.copy()
-        
-        for poly in self.polygons:
-            pts = np.array([
-                [poly[0], poly[1]],
-                [poly[2], poly[3]],
-                [poly[4], poly[5]]
-            ], np.int32)
-            
-            color = (int(poly[6]), int(poly[7]), int(poly[8]))
-            alpha = poly[9] / 255.0
-            
-            cv2.fillPoly(overlay, [pts], color)
-            canvas = cv2.addWeighted(overlay, alpha, canvas, 1 - alpha, 0)
-            overlay = canvas.copy()
-            
-        return canvas
-
-# Fitness Value, Calculates MSE (Mean Squared Error) between the rendered image and the target image, then converts it to a fitness score.
-    def evaluate(self, target_image):
-        rendered_img = self.render()
-        
-        # MSE between gerendertem Bild und Zielbild
-        mse = np.mean((target_image.astype(np.float32) - rendered_img.astype(np.float32)) ** 2)
-        
-        # Fitness-Formel: Je kleiner der MSE, desto höher die Fitness
-        self.fitness = 1.0 / (1.0 + mse)
 
     def crossover(self, other):
         """One-Point-Crossover auf Polygon-Ebene: vorne Eltern A, hinten Eltern B.

@@ -4,14 +4,14 @@ class Hillclimber:
     """(1+1)-Hillclimber nach Roger Alsing: ein einziges Individuum, keine Population, kein Crossover.
 
     Pro Schritt wird eine mutierte Kopie erzeugt und nur behalten, wenn sie nicht schlechter ist.
-    Hat dieselbe Schnittstelle wie `Population`, damit beide in der App austauschbar sind.
+    Hat dieselbe Schnittstelle wie `Population`, damit beide austauschbar sind.
     """
 
     def __init__(self, num_polygons, width, height):
         self.current = Individual(num_polygons, width, height)
 
-    def evaluate_generation(self, target_image):
-        self.current.evaluate(target_image)
+    def evaluate_generation(self, renderer):
+        renderer.calculate_fitness(self.current)
 
     def get_best_individual(self):
         return self.current
@@ -20,7 +20,7 @@ class Hillclimber:
         for _ in range(count):
             self.current.add_random_polygon()
 
-    def evolve(self, target_image, evaluations):
+    def evolve(self, renderer, evaluations):
         """Führt `evaluations` Mutationsschritte aus (je eine Fitness-Auswertung).
 
         So verbraucht ein Hillclimber pro "Generation" genauso viele Auswertungen
@@ -29,6 +29,6 @@ class Hillclimber:
         for _ in range(evaluations):
             # mutation_rate=0.0 -> genau ein Polygon wird verändert
             child = self.current.mutate(mutation_rate=0.0)
-            child.evaluate(target_image)
+            renderer.calculate_fitness(child)
             if child.fitness >= self.current.fitness:
                 self.current = child
