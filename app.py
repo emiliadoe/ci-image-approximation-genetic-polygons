@@ -4,6 +4,7 @@ import numpy as np
 import time
 
 from src.population import Population
+from src.hillclimber import Hillclimber
 
 # Seitenkonfiguration für ein breiteres Layout
 st.set_page_config(
@@ -19,6 +20,12 @@ num_polygons = st.sidebar.slider("Number of Polygons (Triangles)", min_value=10,
 population_size = st.sidebar.slider("Population Size", min_value=10, max_value=100, value=30, step=10)
 max_generations = st.sidebar.slider("Number of Generations", min_value=50, max_value=2000, value=500, step=50)
 working_resolution = st.sidebar.slider("Working Resolution (Pixel Width)", min_value=50, max_value=300, value=120, step=10)
+algorithm = st.sidebar.radio(
+    "Algorithm",
+    ["Genetic Algorithm", "Hillclimber (1+1)"],
+    help="Der Hillclimber (wie bei Roger Alsing) hat nur ein Individuum ohne Crossover. "
+         "Er bekommt pro Generation genauso viele Fitness-Auswertungen wie der GA, damit der Vergleich fair ist."
+)
 
 # Feste GA-Parameter (nicht in der UI einstellbar)
 mutation_rate = 0.05      # Wahrscheinlichkeit pro Dreieck, mutiert zu werden
@@ -82,24 +89,36 @@ if uploaded_file is not None:
         # und füttern sie schrittweise bis zum ausgewählten Maximum (`num_polygons`) auf.
         current_polygons = min(15, num_polygons)
         
-        pop = Population(
-            size=population_size,
-            num_polygons=current_polygons,
-            width=working_resolution,
-            height=target_h
-        )
-        
+        use_ga = algorithm == "Genetic Algorithm"
+        if use_ga:
+            pop = Population(
+                size=population_size,
+                num_polygons=current_polygons,
+                width=working_resolution,
+                height=target_h
+            )
+        else:
+            pop = Hillclimber(
+                num_polygons=current_polygons,
+                width=working_resolution,
+                height=target_h
+            )
+
         # Initiale Bewertung
         pop.evaluate_generation(original_img_bgr)
-        
+
         # Hauptschleife der Generationen
         for gen in range(1, max_generations + 1):
-            pop.evolve(
-                mutation_rate=mutation_rate,
-                mutation_strength=mutation_strength,
-                crossover_rate=crossover_rate,
-                tournament_size=tournament_size,
-            )
+            if use_ga:
+                pop.evolve(
+                    mutation_rate=mutation_rate,
+                    mutation_strength=mutation_strength,
+                    crossover_rate=crossover_rate,
+                    tournament_size=tournament_size,
+                )
+            else:
+                # Gleiches Auswertungsbudget wie eine GA-Generation
+                pop.evolve(original_img_bgr, population_size)
 
             # Alle 5 Generationen neue Dreiecke hinzufügen (bis das Maximum erreicht ist).
             # Alle Individuen wachsen gleichzeitig, damit Crossover gleich lange Genome kombiniert.
