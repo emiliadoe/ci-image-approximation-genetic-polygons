@@ -24,3 +24,41 @@ Warum der GA zurückliegt
 Vermutlich liegt es an den Parametern. Der GA verändert pro Kind etwa 2–3 Dreiecke gleichzeitig, der Hillclimber nur eines. Bei gleichem Budget kann der Hillclimber jede Änderung einzeln prüfen, beim GA wird eine gute Änderung oft von einer schlechten im selben Kind überdeckt. Eine Mutation Rate von etwa 0.02 würde den GA näher an den Hillclimber bringen. Das habe ich nicht getestet.
 
 Für deine Dokumentation wäre das ein ehrliches Ergebnis: Der GA bringt auf diesem Problem keinen Vorteil gegenüber Alsings Verfahren. Ein Test mit einem echten Foto steht noch aus. Soll ich dafür die GA-Parameter durchprobieren und schauen, ob sich das Bild dreht?
+
+
+
+
+Genetic Algorithm
+
+Start (einmalig)
+
+Das Bild wird auf working_resolution verkleinert.
+Es wird eine Population aus population_size Individuen erzeugt. Jedes hat 15 zufällige Dreiecke.
+Alle werden bewertet (Fitness = 1/(1+MSE)) und nach Fitness sortiert, das beste steht vorn.
+
+Pro Generation (wiederholt max_generations mal)
+
+Elitismus: Das beste Individuum wird unverändert in die neue Population kopiert.
+Rest auffüllen, bis population_size erreicht ist. Pro Kind:
+Selektion: 3 zufällige Individuen ziehen, das fitteste wird Elternteil A.
+Crossover mit 70 % Wahrscheinlichkeit: ein zweites Elternteil B per Turnier wählen. Das Kind nimmt die ersten Dreiecke von A und die restlichen von B (Schnitt an zufälliger Stelle). Mit 30 % wird nur A kopiert.
+Mutation: Jedes Dreieck mutiert mit 5 % Wahrscheinlichkeit (mindestens eins). Dabei wird zufällig ein Eckpunkt verschoben, die Farbe oder die Transparenz geändert.
+Die neue Population ersetzt die alte.
+Wachstum: Alle 5 Generationen bekommen alle Individuen 2 neue Zufallsdreiecke, bis num_polygons erreicht ist.
+Bewertung: Alle Individuen werden bewertet und sortiert.
+Anzeige: Alle 10 Generationen wird das beste Bild gerendert.
+
+
+Hillclimber (1+1)
+
+Gleicher Start, aber mit nur einem Individuum. Pro Generation:
+
+population_size mal wiederholen:
+Kopie des Individuums mit genau einem mutierten Dreieck erzeugen.
+Bewerten.
+Wenn die Kopie nicht schlechter ist, ersetzt sie das Individuum, sonst wird sie verworfen.
+Wachstum und Anzeige wie beim GA.
+
+Es gibt weder Selektion noch Crossover. Der Rest der Schleife ist identisch.
+
+Ein Detail zum Wachstum: Die neuen Zufallsdreiecke werden nach der Reproduktion und vor der Bewertung eingefügt. Dadurch kann das beste Bild in solchen Generationen kurz schlechter werden.
