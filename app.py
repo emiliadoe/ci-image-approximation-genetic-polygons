@@ -20,15 +20,11 @@ population_size = st.sidebar.slider("Population Size", min_value=10, max_value=1
 max_generations = st.sidebar.slider("Number of Generations", min_value=50, max_value=2000, value=500, step=50)
 working_resolution = st.sidebar.slider("Working Resolution (Pixel Width)", min_value=50, max_value=300, value=120, step=10)
 
-st.sidebar.subheader("Genetic Operators")
-mutation_rate = st.sidebar.slider("Mutation Rate (per Polygon)", min_value=0.01, max_value=0.5, value=0.05, step=0.01,
-                                  help="Wahrscheinlichkeit, mit der jedes Dreieck eines Kindes mutiert wird.")
-mutation_strength = st.sidebar.slider("Mutation Strength", min_value=0.5, max_value=3.0, value=1.0, step=0.25,
-                                      help="Skaliert die Schrittweite (Punktverschiebung, Farbe, Transparenz).")
-crossover_rate = st.sidebar.slider("Crossover Rate", min_value=0.0, max_value=1.0, value=0.7, step=0.05,
-                                   help="Wahrscheinlichkeit, dass ein Kind aus zwei Eltern kombiniert wird.")
-tournament_size = st.sidebar.slider("Tournament Size", min_value=2, max_value=10, value=3, step=1,
-                                    help="Je größer, desto stärker der Selektionsdruck.")
+# Feste GA-Parameter (nicht in der UI einstellbar)
+mutation_rate = 0.05      # Wahrscheinlichkeit pro Dreieck, mutiert zu werden
+mutation_strength = 1.0   # Skaliert die Schrittweite der Mutation
+crossover_rate = 0.7      # Wahrscheinlichkeit, dass ein Kind aus zwei Eltern entsteht
+tournament_size = 3       # Anzahl Kandidaten pro Eltern-Turnier
 
 st.sidebar.markdown("---")
 st.sidebar.info(
