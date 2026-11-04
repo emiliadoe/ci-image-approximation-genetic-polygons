@@ -14,6 +14,19 @@ st.set_page_config(
 # --- SEITENLEISTE (CONFIGURATION) ---
 st.sidebar.header("Evolution Parameter")
 
+def format_time(seconds):
+    minutes = int(seconds // 60)
+    seconds = int(seconds % 60)
+    hours = int(minutes // 60)
+    minutes = minutes % 60
+
+    if hours > 0:
+        return f"{hours}h {minutes}min {seconds}s"
+    elif minutes > 0:
+        return f"{minutes}min {seconds}s"
+    else:
+        return f"{seconds}s"
+
 # User Controls 
 num_polygons = st.sidebar.slider("Number of Polygons (Triangles)", min_value=10, max_value=300, value=50, step=10)
 population_size = st.sidebar.slider("Population Size", min_value=10, max_value=100, value=30, step=10)
@@ -76,14 +89,17 @@ if uploaded_file is not None:
 
     # Start-Button für die Evolution
     if st.button("Start Evolution", type="primary"):
+        start_time = time.time()
         status_metric.metric("Status", "Running...")
         
         def show_progress(gen, best_ind, renderer):
             """UI-Update für die Live-Ansicht (wird von run_evolution aufgerufen)."""
+            elapsed_time = time.time() - start_time
             rendered_rgb = cv2.cvtColor(renderer.render(best_ind), cv2.COLOR_BGR2RGB)
             image_placeholder.image(rendered_rgb, width=250)
             gen_metric.metric("Current Generation", str(gen))
             fitness_metric.metric("Best Fitness", f"{best_ind.fitness:.6f}")
+            status_metric.metric("Elapsed Time", format_time(elapsed_time))
 
         run_evolution(
             original_img_bgr,
@@ -93,9 +109,17 @@ if uploaded_file is not None:
             max_generations,
             on_progress=show_progress,
         )
+        end_time = time.time()
+        total_time = end_time - start_time
+
+        status_metric.metric("Total Time", f"{total_time:.2f} s")
+
+        st.success(
+            f"The evolution has been completed successfully! "
+            f"Evolution completed successfully in {format_time(total_time)}!"
+        )
 
         status_metric.metric("Status", "Done!")
-        st.success("The evolution has been completed successfully!")
 
 else:
-    st.info("Please upload an image using the uploader on the left to get started.")
+    st.info("Please upload an image using the uploader to get started.")
